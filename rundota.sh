@@ -17,7 +17,7 @@ export STEAM_RUNTIME=0
 
 # Force the use of two libraries that will either not be installed or will
 # conflict with system installed versions
-export LD_PRELOAD="${HOME}/.steam/ubuntu12_32/steam-runtime/amd64/lib/x86_64-linux-gnu/libudev.so.0 ${HOME}/.steam/ubuntu12_32/steam-runtime/amd64/lib/x86_64-linux-gnu/libpng12.so.0"
+export LD_PRELOAD="${HOME}/.local/share/Steam/ubuntu12_32/steam-runtime/amd64/lib/x86_64-linux-gnu/libudev.so.0 ${HOME}/.local/share/Steam/ubuntu12_32/steam-runtime/amd64/lib/x86_64-linux-gnu/libpng12.so.0 $LD_PRELOAD"
 
 # Set the graphics to high
 FLAGS="${FLAGS} -autoconfig_level 3"
@@ -29,7 +29,7 @@ FLAGS="${FLAGS} +fps_max 0"
 FLAGS="${FLAGS} -fs -w 1920 -h 1080"
 
 # Show the framerate
-FLAGS="${FLAGS} +cl_showfps 2"
+FLAGS="${FLAGS} +con_enable 1 +demo_pause -console"
 
 # Run the time demo and quit as soon as finished
 if [ $TRACE == "valve" ]; then
@@ -43,11 +43,30 @@ fi
 # Make it work with APITrace
 #FLAGS="${FLAGS} -gl_disable_buffer_storage -gl_disable_compressed_texture_pixel_storage"
 
+export DISPLAY=:0
+export MESA_LOADER_DRIVER_OVERRIDE=iris
+
+# export ENABLE_VULKAN_RENDERDOC_CAPTURE=1
+# export VK_INSTANCE_LAYERS=VK_LAYER_RENDERDOC_Capture
+# export VK_INSTANCE_LAYERS=VK_LAYER_MESA_overlay
+# export VK_LAYER_MESA_OVERLAY_CONFIG=help
+# export ENABLE_MESA_LAYER=1
+# export VK_INSTANCE_LAYERS=VK_LAYER_LUNARG_vktrace
+
+# source ~/dev/wip/usr/setup_env.sh
+
 # Start dota2 and set it to kill on shell exit
-for api in "gl vulkan"; do
-    for _ in `seq 1 5`; do
-        "${DOTA2_BIN}" ${FLAGS} "-${api}"
+api=vulkan
+# for api in gl vulkan; do
+#     for _ in `seq 1 5`; do
+        # Gathering trace
+        # apitrace trace -o ~/dota2.trace "${DOTA2_BIN}" ${FLAGS} "-${api}" --gl_apitrace -gl_disable_buffer_storage -gl_disable_compressed_texture_pixel_storage -gl_disable_binary_shaders
+
+        # Performance run
+        # "${DOTA2_BIN}" ${FLAGS} "-${api}" &> /dev/null
+        renderdoccmd capture "${DOTA2_BIN}" ${FLAGS} \"-${api}\" -vulkan_disable_steam_shader_cache # &> /dev/null
+        # if [ $? = "0" ]; then break; fi
         echo -n "${api}: "
-        tail -1 "${DOTA2_BENCH_CSV}" | awk '{print $2}' | tr -d ','
-    done
-done
+        tail -2 "${DOTA2_BENCH_CSV}" | head -1 | awk '{print $2}' | tr -d ','
+    # done
+# done
